@@ -10,5 +10,8 @@ namespace PromoCodeFactory.Core.Abstractions.Repositories
         Task<IEnumerable<T>> GetAllAsync();
 
         Task<T> GetByIdAsync(Guid id);
+        void Create(T employee);
+        void Remove(Guid id);
+        void Update(Guid id, T employee);
     }
 }
