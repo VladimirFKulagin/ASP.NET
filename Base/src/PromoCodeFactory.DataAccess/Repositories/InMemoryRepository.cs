@@ -9,14 +9,14 @@ namespace PromoCodeFactory.DataAccess.Repositories
 {
     public class InMemoryRepository<T>: IRepository<T> where T: BaseEntity
     {
-        protected IEnumerable<T> Data { get; set; }
+        protected IList<T> Data { get; set; }
 
-        public InMemoryRepository(IEnumerable<T> data)
+        public InMemoryRepository(IList<T> data)
         {
             Data = data;
         }
 
-        public Task<IEnumerable<T>> GetAllAsync()
+        public Task<IList<T>> GetAllAsync()
         {
             return Task.FromResult(Data);
         }
@@ -26,21 +26,22 @@ namespace PromoCodeFactory.DataAccess.Repositories
             return Task.FromResult(Data.FirstOrDefault(x => x.Id == id));
         }
 
-        public void Create(T employee)
+        public Task Create(T employee)
         {
-            List<T> newEmployeeList = Data.ToList();
-            newEmployeeList.Add(employee);
-            Data = newEmployeeList;
+            Data.Add(employee);
+            return Task.CompletedTask;
         }
 
-        public void Remove(Guid id)
+        public Task Remove(Guid id)
         {
-            Data = Data.Where(x => x.Id != id);
+            var removedEntity = Data.FirstOrDefault(x => x.Id == id);
+            Data.Remove(removedEntity);
+            return Task.CompletedTask;
         }
 
-        public void Update(Guid id, T employee)
+        public Task Update(Guid id, T employee)
         {
-            var person = Data.FirstOrDefault(x => x.Id == id) as Employee;
+            Employee person = Data.FirstOrDefault(x => x.Id == id) as Employee;
             if (person != null)
             {
                 var emp = employee as Employee;
@@ -50,6 +51,7 @@ namespace PromoCodeFactory.DataAccess.Repositories
                 person.Roles = emp.Roles;
                 person.AppliedPromocodesCount = emp.AppliedPromocodesCount;
             }
+            return Task.CompletedTask;
         }
     }
 }

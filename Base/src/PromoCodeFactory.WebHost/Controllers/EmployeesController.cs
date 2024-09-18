@@ -76,10 +76,25 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// </summary>
         /// <param name="employee"></param>
         [HttpPost]
-        public async void CreateEmployee(Employee employee)
+        public async Task CreateEmployee([FromBody] Employee employee)
         {
-            if ( await _employeeRepository.GetByIdAsync(employee.Id) == null)
-                _employeeRepository.Create(employee);
+            if (await _employeeRepository.GetByIdAsync(employee.Id) != null)
+                BadRequest("Employee with this ID exist");
+            else
+                await _employeeRepository.Create(employee);
+            //
+            /*var employeeModel = new EmployeeResponse()
+            {
+                Id = employee.Id,
+                Email = employee.Email,
+                Roles = employee.Roles.Select(x => new RoleItemResponse()
+                {
+                    Name = x.Name,
+                    Description = x.Description
+                }).ToList(),
+                FullName = employee.FullName,
+                AppliedPromocodesCount = employee.AppliedPromocodesCount
+            };*/
         }
 
         /// <summary>
@@ -87,10 +102,11 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// </summary>
         /// <param name="id"></param>
         [HttpDelete]
-        public async void RemoveEmployee(Guid id)
+        public async Task RemoveEmployee(Guid id)
         {
-            if (await _employeeRepository.GetByIdAsync(id)!=null)
-                _employeeRepository.Remove(id);
+            if (await _employeeRepository.GetByIdAsync(id) != null)
+                await _employeeRepository.Remove(id);
+            else NotFound("Employee not found");
         }
 
         /// <summary>
@@ -99,10 +115,11 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// <param name="id"></param>
         /// <param name="employee"></param>
         [HttpPatch]
-        public async void UpdateEmployee(Guid id, Employee employee)
+        public async Task UpdateEmployee(Guid id, [FromBody] Employee employee)
         {
             if (await _employeeRepository.GetByIdAsync(id) != null)
-                _employeeRepository.Update(id, employee);
+                await _employeeRepository.Update(id, employee);
+            else NotFound("Employee not found");
         }
     }
 }
