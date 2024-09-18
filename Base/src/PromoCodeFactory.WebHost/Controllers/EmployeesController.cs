@@ -71,6 +71,7 @@ namespace PromoCodeFactory.WebHost.Controllers
             return employeeModel;
         }
 
+
         /// <summary>
         /// Добавить сотрудника
         /// </summary>
@@ -82,19 +83,7 @@ namespace PromoCodeFactory.WebHost.Controllers
                 BadRequest("Employee with this ID exist");
             else
                 await _employeeRepository.Create(employee);
-            //
-            /*var employeeModel = new EmployeeResponse()
-            {
-                Id = employee.Id,
-                Email = employee.Email,
-                Roles = employee.Roles.Select(x => new RoleItemResponse()
-                {
-                    Name = x.Name,
-                    Description = x.Description
-                }).ToList(),
-                FullName = employee.FullName,
-                AppliedPromocodesCount = employee.AppliedPromocodesCount
-            };*/
+            
         }
 
         /// <summary>

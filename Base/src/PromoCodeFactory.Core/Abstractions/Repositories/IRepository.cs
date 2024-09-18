@@ -10,8 +10,10 @@ namespace PromoCodeFactory.Core.Abstractions.Repositories
         Task<IList<T>> GetAllAsync();
 
         Task<T> GetByIdAsync(Guid id);
+
         Task Create(T employee);
         Task Remove(Guid id);
         Task Update(Guid id, T employee);
+
     }
 }
