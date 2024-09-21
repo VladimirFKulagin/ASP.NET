@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using PromoCodeFactory.Core.Abstractions.Repositories;
 using PromoCodeFactory.Core.Domain.Administration;
@@ -71,19 +72,40 @@ namespace PromoCodeFactory.WebHost.Controllers
             return employeeModel;
         }
 
+        private EmployeeResponse printEmployee(Employee emp)
+        {
+            var employeeModel = new EmployeeResponse()
+            {
+                Id = emp.Id,
+                Email = emp.Email,
+                Roles = emp.Roles.Select(x => new RoleItemResponse()
+                {
+                    Name = x.Name,
+                    Description = x.Description
+                }).ToList(),
+                FullName = emp.FullName,
+                AppliedPromocodesCount = emp.AppliedPromocodesCount
+            };
+            return employeeModel;
+        }
+
 
         /// <summary>
         /// Добавить сотрудника
         /// </summary>
         /// <param name="employee"></param>
         [HttpPost]
-        public async Task CreateEmployee([FromBody] Employee employee)
+        public async Task<ActionResult<EmployeeResponse>> CreateEmployee(Employee employee)
         {
             if (await _employeeRepository.GetByIdAsync(employee.Id) != null)
-                BadRequest("Employee with this ID exist");
+                return NotFound("Employee with this ID exist");
             else
-                await _employeeRepository.Create(employee);
-            
+            {
+                var resEmp = await _employeeRepository.Create(employee);
+                if (resEmp == null)
+                    return NotFound();
+                return printEmployee(resEmp);
+            }
         }
 
         /// <summary>
@@ -91,11 +113,17 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// </summary>
         /// <param name="id"></param>
         [HttpDelete]
-        public async Task RemoveEmployee(Guid id)
+        public async Task<ActionResult<EmployeeResponse>> RemoveEmployee(Guid id)
         {
             if (await _employeeRepository.GetByIdAsync(id) != null)
-                await _employeeRepository.Remove(id);
-            else NotFound("Employee not found");
+            {
+                var resEmp = await _employeeRepository.Remove(id);
+                if (resEmp == null)
+                    return Ok("Employee was removed");
+                else
+                    return BadRequest();
+            }
+            else return NotFound("Employee not found");
         }
 
         /// <summary>
@@ -104,11 +132,28 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// <param name="id"></param>
         /// <param name="employee"></param>
         [HttpPatch]
-        public async Task UpdateEmployee(Guid id, [FromBody] Employee employee)
+        public async Task<ActionResult<EmployeeResponse>> UpdateEmployee(Guid id, Employee employee)
         {
-            if (await _employeeRepository.GetByIdAsync(id) != null)
-                await _employeeRepository.Update(id, employee);
-            else NotFound("Employee not found");
+            var existingEmp = await _employeeRepository.GetByIdAsync(id);
+            if (existingEmp == null)
+                return NotFound("Employee with this ID not found");
+            existingEmp.FirstName = employee.FirstName;
+            existingEmp.LastName = employee.LastName;
+            existingEmp.Email = employee.Email;
+            existingEmp.Roles = employee.Roles.Select(r => new Role {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description
+            }).ToList();
+            existingEmp.AppliedPromocodesCount = employee.AppliedPromocodesCount;
+
+            var resEmp = await _employeeRepository.Update(id, employee);
+            if (resEmp == null)
+                return NotFound();
+
+            return printEmployee(resEmp);
+
+
         }
     }
 }

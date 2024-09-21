@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using PromoCodeFactory.Core.Abstractions.Repositories;
 using PromoCodeFactory.Core.Domain;
+using PromoCodeFactory.Core.Domain.Administration;
 namespace PromoCodeFactory.DataAccess.Repositories
 {
     public class InMemoryRepository<T>: IRepository<T> where T: BaseEntity
@@ -25,32 +26,24 @@ namespace PromoCodeFactory.DataAccess.Repositories
             return Task.FromResult(Data.FirstOrDefault(x => x.Id == id));
         }
 
-        public Task Create(T employee)
+        public Task<T> Create(T employee)
         {
             Data.Add(employee);
-            return Task.CompletedTask;
+            return Task.FromResult(Data.FirstOrDefault(x => x.Id == employee.Id));
         }
 
-        public Task Remove(Guid id)
+        public Task<T> Remove(Guid id)
         {
             var removedEntity = Data.FirstOrDefault(x => x.Id == id);
-            Data.Remove(removedEntity);
-            return Task.CompletedTask;
+            if (removedEntity!=null)
+                Data.Remove(removedEntity);
+            return Task.FromResult(Data.FirstOrDefault(x => x.Id == id));
         }
 
-        public Task Update(Guid id, T employee)
+        public Task<T> Update(Guid id, T employee)
         {
-            Employee person = Data.FirstOrDefault(x => x.Id == id) as Employee;
-            if (person != null)
-            {
-                var emp = employee as Employee;
-                person.Email = emp.Email;
-                person.FirstName = emp.FirstName;
-                person.LastName = emp.LastName;
-                person.Roles = emp.Roles;
-                person.AppliedPromocodesCount = emp.AppliedPromocodesCount;
-            }
-            return Task.CompletedTask;
+            Data = Data.Select(x => (x.Id == id)?employee:x).ToList();
+            return Task.FromResult(Data.FirstOrDefault(x => x.Id == id));
         }
     }
 }
