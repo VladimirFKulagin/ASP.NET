@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using PromoCodeFactory.Core.Abstractions.Repositories;
 using PromoCodeFactory.Core.Domain.Administration;
 using PromoCodeFactory.WebHost.Models;
+using PromoCodeFactory.WebHost.Models.DTO;
 
 namespace PromoCodeFactory.WebHost.Controllers
 {
@@ -52,60 +53,23 @@ namespace PromoCodeFactory.WebHost.Controllers
         public async Task<ActionResult<EmployeeResponse>> GetEmployeeByIdAsync(Guid id)
         {
             var employee = await _employeeRepository.GetByIdAsync(id);
-
             if (employee == null)
                 return NotFound();
-
-            var employeeModel = new EmployeeResponse()
-            {
-                Id = employee.Id,
-                Email = employee.Email,
-                Roles = employee.Roles.Select(x => new RoleItemResponse()
-                {
-                    Name = x.Name,
-                    Description = x.Description
-                }).ToList(),
-                FullName = employee.FullName,
-                AppliedPromocodesCount = employee.AppliedPromocodesCount
-            };
-
-            return employeeModel;
+            return PrintEmployee(employee);
         }
-
-        private EmployeeResponse printEmployee(Employee emp)
-        {
-            var employeeModel = new EmployeeResponse()
-            {
-                Id = emp.Id,
-                Email = emp.Email,
-                Roles = emp.Roles.Select(x => new RoleItemResponse()
-                {
-                    Name = x.Name,
-                    Description = x.Description
-                }).ToList(),
-                FullName = emp.FullName,
-                AppliedPromocodesCount = emp.AppliedPromocodesCount
-            };
-            return employeeModel;
-        }
-
 
         /// <summary>
-        /// Добавить сотрудника
+        /// Создать нового сотрудника
         /// </summary>
         /// <param name="employee"></param>
+        /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<EmployeeResponse>> CreateEmployee(Employee employee)
+        public async Task<ActionResult<EmployeeResponse>> CreateEmployee(EmployeeDtoCreate employee)
         {
-            if (await _employeeRepository.GetByIdAsync(employee.Id) != null)
-                return NotFound("Employee with this ID exist");
-            else
-            {
-                var resEmp = await _employeeRepository.Create(employee);
-                if (resEmp == null)
-                    return NotFound();
-                return printEmployee(resEmp);
-            }
+            var resEmp = await _employeeRepository.Create(employee.ToEmployee());
+            if (resEmp == null)
+                return NotFound("Failed to create employee");
+            return PrintEmployee(resEmp);
         }
 
         /// <summary>
@@ -115,15 +79,11 @@ namespace PromoCodeFactory.WebHost.Controllers
         [HttpDelete]
         public async Task<ActionResult<EmployeeResponse>> RemoveEmployee(Guid id)
         {
-            if (await _employeeRepository.GetByIdAsync(id) != null)
-            {
-                var resEmp = await _employeeRepository.Remove(id);
-                if (resEmp == null)
-                    return Ok("Employee was removed");
-                else
-                    return BadRequest();
-            }
-            else return NotFound("Employee not found");
+            var resEmp = await _employeeRepository.Remove(id);
+            if (resEmp == null)
+                return Ok("Employee was removed");
+            else
+                return NotFound($"Employee with ID {id} not found");
         }
 
         /// <summary>
@@ -132,28 +92,35 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// <param name="id"></param>
         /// <param name="employee"></param>
         [HttpPatch]
-        public async Task<ActionResult<EmployeeResponse>> UpdateEmployee(Guid id, Employee employee)
+        public async Task<ActionResult<EmployeeResponse>> UpdateEmployee(Guid id, EmployeeDtoCreate employee)
         {
             var existingEmp = await _employeeRepository.GetByIdAsync(id);
             if (existingEmp == null)
-                return NotFound("Employee with this ID not found");
-            existingEmp.FirstName = employee.FirstName;
-            existingEmp.LastName = employee.LastName;
-            existingEmp.Email = employee.Email;
-            existingEmp.Roles = employee.Roles.Select(r => new Role {
-                Id = r.Id,
-                Name = r.Name,
-                Description = r.Description
-            }).ToList();
-            existingEmp.AppliedPromocodesCount = employee.AppliedPromocodesCount;
-
-            var resEmp = await _employeeRepository.Update(id, employee);
+                return NotFound($"Employee with ID {id} not found");
+            var resEmp = await _employeeRepository.Update(id, employee.ToEmployee(id));
             if (resEmp == null)
                 return NotFound();
+            return PrintEmployee(resEmp);
 
-            return printEmployee(resEmp);
 
+        }
 
+        private EmployeeResponse PrintEmployee(Employee emp)
+        {
+            var employeeModel = new EmployeeResponse()
+            {
+                Id = emp.Id,
+                Email = emp.Email,
+                Roles = emp.Roles.Select(x => new RoleItemResponse()
+                {
+                    Id =x.Id,
+                    Name = x.Name,
+                    Description = x.Description
+                }).ToList(),
+                FullName = emp.FullName,
+                AppliedPromocodesCount = emp.AppliedPromocodesCount
+            };
+            return employeeModel;
         }
     }
 }

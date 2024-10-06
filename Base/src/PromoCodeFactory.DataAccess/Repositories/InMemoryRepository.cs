@@ -26,10 +26,10 @@ namespace PromoCodeFactory.DataAccess.Repositories
             return Task.FromResult(Data.FirstOrDefault(x => x.Id == id));
         }
 
-        public Task<T> Create(T employee)
+        public Task<T?> Create(T entity)
         {
-            Data.Add(employee);
-            return Task.FromResult(Data.FirstOrDefault(x => x.Id == employee.Id));
+            Data.Add(entity);
+            return Task.FromResult(Data.FirstOrDefault(x => x.Id == entity.Id));
         }
 
         public Task<T> Remove(Guid id)
@@ -40,9 +40,9 @@ namespace PromoCodeFactory.DataAccess.Repositories
             return Task.FromResult(Data.FirstOrDefault(x => x.Id == id));
         }
 
-        public Task<T> Update(Guid id, T employee)
+        public Task<T> Update(Guid id, T entity)
         {
-            Data = Data.Select(x => (x.Id == id)?employee:x).ToList();
+            Data = Data.Select(x => (x.Id == id)?entity:x).ToList();
             return Task.FromResult(Data.FirstOrDefault(x => x.Id == id));
         }
     }
