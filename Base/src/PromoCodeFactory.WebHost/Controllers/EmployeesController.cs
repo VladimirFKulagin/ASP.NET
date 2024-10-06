@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using PromoCodeFactory.Core.Abstractions.Repositories;
 using PromoCodeFactory.Core.Domain.Administration;
 using PromoCodeFactory.WebHost.Models;
+using PromoCodeFactory.WebHost.Models.DTO;
 
 namespace PromoCodeFactory.WebHost.Controllers
 {
@@ -51,39 +53,23 @@ namespace PromoCodeFactory.WebHost.Controllers
         public async Task<ActionResult<EmployeeResponse>> GetEmployeeByIdAsync(Guid id)
         {
             var employee = await _employeeRepository.GetByIdAsync(id);
-
             if (employee == null)
                 return NotFound();
-
-            var employeeModel = new EmployeeResponse()
-            {
-                Id = employee.Id,
-                Email = employee.Email,
-                Roles = employee.Roles.Select(x => new RoleItemResponse()
-                {
-                    Name = x.Name,
-                    Description = x.Description
-                }).ToList(),
-                FullName = employee.FullName,
-                AppliedPromocodesCount = employee.AppliedPromocodesCount
-            };
-
-            return employeeModel;
+            return PrintEmployee(employee);
         }
 
-
         /// <summary>
-        /// Добавить сотрудника
+        /// Создать нового сотрудника
         /// </summary>
         /// <param name="employee"></param>
+        /// <returns></returns>
         [HttpPost]
-        public async Task CreateEmployee([FromBody] Employee employee)
+        public async Task<ActionResult<EmployeeResponse>> CreateEmployee(EmployeeDtoCreate employee)
         {
-            if (await _employeeRepository.GetByIdAsync(employee.Id) != null)
-                BadRequest("Employee with this ID exist");
-            else
-                await _employeeRepository.Create(employee);
-            
+            var resEmp = await _employeeRepository.Create(employee.ToEmployee());
+            if (resEmp == null)
+                return NotFound("Failed to create employee");
+            return PrintEmployee(resEmp);
         }
 
         /// <summary>
@@ -91,11 +77,13 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// </summary>
         /// <param name="id"></param>
         [HttpDelete]
-        public async Task RemoveEmployee(Guid id)
+        public async Task<ActionResult<EmployeeResponse>> RemoveEmployee(Guid id)
         {
-            if (await _employeeRepository.GetByIdAsync(id) != null)
-                await _employeeRepository.Remove(id);
-            else NotFound("Employee not found");
+            var resEmp = await _employeeRepository.Remove(id);
+            if (resEmp == null)
+                return Ok("Employee was removed");
+            else
+                return NotFound($"Employee with ID {id} not found");
         }
 
         /// <summary>
@@ -104,11 +92,35 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// <param name="id"></param>
         /// <param name="employee"></param>
         [HttpPatch]
-        public async Task UpdateEmployee(Guid id, [FromBody] Employee employee)
+        public async Task<ActionResult<EmployeeResponse>> UpdateEmployee(Guid id, EmployeeDtoCreate employee)
         {
-            if (await _employeeRepository.GetByIdAsync(id) != null)
-                await _employeeRepository.Update(id, employee);
-            else NotFound("Employee not found");
+            var existingEmp = await _employeeRepository.GetByIdAsync(id);
+            if (existingEmp == null)
+                return NotFound($"Employee with ID {id} not found");
+            var resEmp = await _employeeRepository.Update(id, employee.ToEmployee(id));
+            if (resEmp == null)
+                return NotFound();
+            return PrintEmployee(resEmp);
+
+
+        }
+
+        private EmployeeResponse PrintEmployee(Employee emp)
+        {
+            var employeeModel = new EmployeeResponse()
+            {
+                Id = emp.Id,
+                Email = emp.Email,
+                Roles = emp.Roles.Select(x => new RoleItemResponse()
+                {
+                    Id =x.Id,
+                    Name = x.Name,
+                    Description = x.Description
+                }).ToList(),
+                FullName = emp.FullName,
+                AppliedPromocodesCount = emp.AppliedPromocodesCount
+            };
+            return employeeModel;
         }
     }
 }
